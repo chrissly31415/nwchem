@@ -487,13 +487,22 @@ c
       double precision ratm(nat)    !< [Input] the atom radii
       double precision ecos !< [Output] the energy contribution due to
                             !< the COSMO charges
+c      double precision volmol  !< COSMO volume
+c      double precision srfmol  !< COSMO surface
+      double precision esol  !< dft energy
+      character*25 xc_spec       ! Names of X functionals
+      character*15 bs_tag
       logical  status
+c     
+      double precision cxyz(3)  ! coordinates
+      double precision chg      ! charge
 c
       logical  dbug,more,out,direct,noall,all,elec,nucl,iefc_done
       character*16 at_tag
       integer istrlen
       character*255 cosmo_file_in
       character*(nw_max_path_len) cosmo_file
+      character*(nw_max_path_len) cosmo_file_nice
       integer fn
 c      integer lineq ! 0: fast direct solver, 1: slow iterative solver
 c      integer minbem 
@@ -593,19 +602,13 @@ c
 c
       oprint_energies = util_print("cosmo_energies",print_never)
       oprint_energies = oprint_energies.and.(ga_nodeid().eq.0)
-      
 c
       wgsrf_cosmo_vem = zero
       wstar_cosmo_vem = zero
       tolw = 0.00001d0
       iter_cosmo_vem = 0
-      if(dielecinf.ne.0d0) then
-         dvem1=(dielecinf-1d0)*dielec/dielecinf/(dielec-1d0)
-         dvem2=(dielec-dielecinf)/dielecinf/(dielec-1d0)
-      else
-         dvem1=0d0
-         dvem2=0d0
-      endif
+      dvem1=(dielecinf-one)*dielec/dielecinf/(dielec-one)
+      dvem2=(dielec-dielecinf)/dielecinf/(dielec-one)
 c
       if (.not. rtdb_get
      $ (rtdb,'cosmo:istep_cosmo_vem',mt_int,1,istep_cosmo_vem))
@@ -1166,6 +1169,7 @@ c
 c     ----- printing cosmo charges for bq module -----
 c
       istrlen = inp_strlen(cosmo_file_in)
+     
       if (istrlen.le.0) cosmo_file_in = "cosmo.xyz" 
       call util_file_name(cosmo_file_in,.false.,.false.,cosmo_file)
       call util_file_name_resolve(cosmo_file,.false.)
@@ -1181,11 +1185,11 @@ c
         end if
 c
         write(fn,*) nefc
-        write(fn,*) "cosmo charges (= -Bq-charge) (coordinates in Angstr
+        write(fn,*) "cosmo mod charges (= -Bq-charge) (coordinates in Angstr
      +om) format: Bq x y z q"
         do ief=1,nefc
-           write(fn,*) 
-     +      "Bq",
+           write(fn,*)
+     +      " Bq",
      +      efcc(1,ief)*cau2ang,
      +      efcc(2,ief)*cau2ang,
      +      efcc(3,ief)*cau2ang,
@@ -1193,6 +1197,104 @@ c
         end do
         close(fn)
       end if
+
+c
+c  Print nice cosmo file
+c
+
+      cosmo_file_nice="cosmo.csv"
+      if(ga_nodeid().eq.0) then
+        if(.not.util_io_unit(80,90,fn))
+     +     call errquit('cannot get free unit', 0,
+     +       0)
+c  
+        if(.not.rtdb_get(rtdb,
+     $ 'cosmo:volmol',mt_dbl,1,volmol)) call errquit
+     $ ('hnd_coschg: cannot get volmol from rtdb',
+     $ 0,rtdb_err)
+
+        if(.not.rtdb_get(rtdb,
+     $ 'cosmo:srfmol',mt_dbl,1,srfmol)) call errquit
+     $ ('hnd_coschg: cannot get srfmol from rtdb',
+     $ 0,rtdb_err)
+     
+        if(.not.rtdb_get(rtdb,'dft:esol', mt_dbl,1,esol)) 
+     &             call errquit(
+     &             'hnd_coschg: failed getting esol',0, RTDB_ERR)
+
+        if(.not.rtdb_cget(rtdb,'dft:xc_spec',1,xc_spec))
+     &  call errquit('hnd_coschg: failed getting xc_spec',0, RTDB_ERR)
+
+        if(.not.rtdb_cget(rtdb,'basis:ao basis:star bas type'
+     $   ,1,bs_tag))
+     &  call errquit('hnd_coschg: failed getting basis',0,RTDB_ERR) 
+
+        open(unit=fn,form="formatted",file=cosmo_file_nice)
+        
+        write(fn,'(A13,A20,F16.9,A20,A25,A20,A15,A3)', advance="no")
+     +  "# {""dftdata"":",
+     +  "{""dft_energy"":", esol, 
+     +  ", ""xc_spec"":", """"//trim(xc_spec)//"""", 
+     +  ", ""basis"":", """"//trim(bs_tag)//""""," },"
+
+        write(fn,'(A14,A20,F16.9,A22,F16.9,A22,
+     $   F10.5,A20,F10.5,A20,F10.5,A3)')
+     +  """cosmodata"":",
+     +  "{""cosmo_energy"":", ecos, 
+     +  ", ""charge_correction"":", errcos, 
+     +  ", ""dielec"":", dielec,
+     +  ", ""cosmo_area"":", srfmol,
+     +  ", ""cosmo_volume"":", volmol, " }}"
+c
+        write(fn,'(2A6,2A7,6A16)')
+     +      "n",
+     +      "atom",
+     +      "symbol",
+     +      "type",
+     +      "X",
+     +      "Y",
+     +      "Z",
+     +      "charge",
+     +      "area",
+     +      "potential"
+
+      do iat=1,nat
+           status = geom_cent_get(geom,iat,at_tag,cxyz,chg)
+           if (.not.status) call errquit
+           write(fn,'(I6, I6, A7, A7, 6F16.9)')
+     +      iat,
+     +      iat,
+     +      ADJUSTR(TRIM(at_tag)),
+     +      "coord",
+     +      cxyz(1)*cau2ang,
+     +      cxyz(2)*cau2ang,
+     +      cxyz(3)*cau2ang,
+     +      chg,
+     +      0.0,
+     +      0.0      
+        enddo
+
+        do ief=1,nefc
+           status = geom_cent_get(geom,efciat(ief),at_tag,cxyz,chg)
+           if (.not.status) call errquit
+     +     ('geom_cent_get failed',911, GEOM_ERR)
+
+           write(fn,'(I6, I6, A7, A7, 6F16.9)')
+     +      ief,
+     +      efciat(ief),
+     +      ADJUSTR(TRIM(at_tag)),
+     +      "cosmo",
+     +      efcc(1,ief)*cau2ang,
+     +      efcc(2,ief)*cau2ang,
+     +      efcc(3,ief)*cau2ang,
+     +      efcz(  ief),
+     +      efcs(ief)*cau2ang*cau2ang,
+     +      efczz(ief)
+        end do
+        
+        close(fn)
+      end if
+
 c
 c MN solvation models -->
 c
@@ -1269,10 +1371,8 @@ c      calculated in tddft_grad_compute_g.F.
 c
 c      calculate noneq charges from current ES charges and saved GS charges
 c
-         if (do_cosmo_vem.eq.2) then
-            dvem1=1d0
-            dvem2=0d0
-         endif
+        if (do_cosmo_vem.eq.2) dvem1=one
+        if (do_cosmo_vem.eq.2) dvem2=zero
         espolgsrf = zero
         espolin = zero
         espoldyn = zero

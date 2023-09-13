@@ -906,6 +906,14 @@ c
       if(.not.rtdb_put(rtdb,'cosmo:efczz',mt_dbl,nefc,dbl_mb(k_efczz)))
      &   call errquit('hnd_cossas: rtdb put failed for efczz ',914,
      &       rtdb_err) 
+c    save molecular volume and surface area for COSMO-RS entropy    
+      if(.not.rtdb_put(rtdb,'cosmo:srfmol',mt_dbl,1,srfmol))
+     $   call errquit('hnd_cossas: rtdb put failed for srfmol ',914,
+     &       rtdb_err)
+
+      if(.not.rtdb_put(rtdb,'cosmo:volmol',mt_dbl,1,volmol))
+     $   call errquit('hnd_cossas: rtdb put failed for volmol ',914,
+     &       rtdb_err)
 c
 c     ----- reset cosmo:rawt to avoid trouble in cosmo charge 
 c           calculation -----
