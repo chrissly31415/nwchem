@@ -29,7 +29,7 @@ c
      &     EPS,EPSINF,
      &     SOLA,SOLB,SOLC,SOLG,SOLH,SOLN)
       if(eps.eq.0d0.and.epsinf.eq.0d0) then
-         write(6,*) ' no data from solv_data for',solvname_short
+         write(6,*) ' no data from solv_data for:',solvname_short
          solv_data=.false.
          return
       endif
@@ -60,11 +60,11 @@ C
       CHARACTER*8 ZSOLMN,SOLMN
       CHARACTER*35 ZSOLMNLONG,SOLMNLONG
 C
-      DIMENSION SOLMN(179),DEPS(179),DSOLA(179),DSOLB(179),
-     $          DSOLC(179),DSOLG(179),DSOLH(179),DSOLN(179),
-     $          SOLMNLONG(179)
+      DIMENSION SOLMN(180),DEPS(180),DSOLA(180),DSOLB(180),
+     $          DSOLC(180),DSOLG(180),DSOLH(180),DSOLN(180),
+     $          SOLMNLONG(180)
 C
-C SHORT NAMES OF 179 AVAILABLE SOLVENTS
+C SHORT NAMES OF 179 AVAILABLE SOLVENTS + COSMO CONDUCTOR
       DATA SOLMN/
      $ 'acetacid',
      $ 'acetone ',
@@ -244,7 +244,8 @@ C SHORT NAMES OF 179 AVAILABLE SOLVENTS
      $ 'o-xylene',
      $ 'p-xylene',
      $ 'xylenemx',
-     $ 'h2o'/
+     $ 'h2o',
+     $ 'cosmo'/
 C
 C LONG NAMES OF 178 AVAILABLE NONAQUEOUS SOLVENTS
       DATA SOLMNLONG/
@@ -426,7 +427,8 @@ C LONG NAMES OF 178 AVAILABLE NONAQUEOUS SOLVENTS
      $ 'o-xylene',
      $ 'p-xylene',
      $ 'xylene (mixture)',
-     $ 'water'/
+     $ 'water',
+     $ 'cosmo'/
 C
 C DIELECTRIC CONSTANT AT 298 K
       DATA DEPS/
@@ -608,7 +610,8 @@ C DIELECTRIC CONSTANT AT 298 K
      $ 2.5454,
      $ 2.2705,
      $ 2.3879,
-     $ 78.40/
+     $ 78.40,
+     $ 999.9999/
 C 
 C ABRAHAM'S ALPHAS
       DATA DSOLA/
@@ -790,7 +793,8 @@ C ABRAHAM'S ALPHAS
      $ 0.00,
      $ 0.00,
      $ 0.00,
-     $ 0.82/  ! water
+     $ 0.82, ! water
+     $ 0.00/  
 C
 C ABRAHAM'S BETAS
       DATA DSOLB/
@@ -972,7 +976,8 @@ C ABRAHAM'S BETAS
      $ 0.16,
      $ 0.16,
      $ 0.16,
-     $ 0.35/  ! water
+     $ 0.35, ! water
+     $ 0.00/  
 C
 C AROMATICITY: fraction of non-hydrogenic solvent atoms that are aromatic carbon atoms
       DATA DSOLC/
@@ -1154,7 +1159,8 @@ C AROMATICITY: fraction of non-hydrogenic solvent atoms that are aromatic carbon
      $ 0.750,
      $ 0.750,
      $ 0.750,
-     $ 0.00/  ! water
+     $ 0.00, ! water
+     $ 0.00/  
 C
 C MACROSCOPIC SURFACE TENSION AT 298 K
       DATA DSOLG/
@@ -1336,7 +1342,8 @@ C MACROSCOPIC SURFACE TENSION AT 298 K
      $ 42.83,
      $ 40.32,
      $ 41.38,
-     $ 103.62/  ! water
+     $ 103.62,! water
+     $ 0.00/  
 C
 C ELECTRONEGATIVE HALOGENICITY: fraction of non-hydrogenic solvent atoms that are F, Cl, or Br
       DATA DSOLH/
@@ -1518,7 +1525,8 @@ C ELECTRONEGATIVE HALOGENICITY: fraction of non-hydrogenic solvent atoms that ar
      $ 0.000,
      $ 0.000,
      $ 0.000,
-     $ 0.00/  ! water
+     $ 0.000,! water
+     $ 0.000/  
 C
 C INDEX OF REFRACTION AT OPTICAL FREQUENCY AT 293 K  
       DATA DSOLN/
@@ -1700,9 +1708,10 @@ C INDEX OF REFRACTION AT OPTICAL FREQUENCY AT 293 K
      $ 1.5055,
      $ 1.4958,
      $ 1.4995,
-     $ 1.333/  ! water
+     $ 1.333, ! water
+     $ 0.000/  
 C
-       DO I=1,179
+       DO I=1,180
         IF (ZSOLMN.EQ.SOLMN(I)) THEN
            ZSOLMNLONG=SOLMNLONG(I)
            EPS=DEPS(I)

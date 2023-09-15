@@ -370,6 +370,8 @@ c
 c     set sola,solb,solc,solg,solh,soln,icds parameters (either from
 c     solv_data or user-defined)
 c
+
+      
       if (.not. rtdb_put(rtdb,'cosmo:dielec',mt_dbl,1,dielec))
      $     call errquit('cosmo_initialize: rtdb_put failed',0, RTDB_ERR)
       if(do_cosmo_smd) then
@@ -716,7 +718,7 @@ c
      1       /,10x,'-cosmo- solvent',
      2       /,10x,15(1h-))
  9998 format(' no -cosmo- solvent.')
- 9997 format(' dielectric constant -eps-     = ',f6.2)
+ 9997 format(' dielectric constant -eps-     = ',f9.5)
  9996 format(' screen = (eps-1)/(eps+1/2)    = ',f9.5)
  9995 format(' screen = (eps-1)/(eps    )    = ',f9.5)
  9994 format(' solvent radius (ang.)         = ',f7.3)
