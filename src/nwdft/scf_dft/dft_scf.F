@@ -1217,6 +1217,8 @@ c
         cosmo_file = 'cosmo.xyz'
         if (.not. rtdb_put(rtdb, 'dft:esol', mt_dbl, 1, etnew+enuc))
      &     call errquit('dft_scf: rtdb_put esol failed', 1, RTDB_ERR)
+        if (.not. rtdb_put(rtdb, 'dft:egas', mt_dbl, 1, egas))
+     &     call errquit('dft_scf: rtdb_put egas failed', 1, RTDB_ERR)
         if (ipol.eq.2) ! separate components
      &    call ga_dadd(1.d0,g_dens(1),-1.d0,g_dens(2),g_dens(1))
         call cosmo_charges_from_dmat(rtdb, ao_bas_han, geom, 

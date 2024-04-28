@@ -489,10 +489,12 @@ c
                             !< the COSMO charges
 c      double precision volmol  !< COSMO volume
 c      double precision srfmol  !< COSMO surface
-      double precision esol  !< dft energy
+      double precision esol  !< dft cosmo energy
+      double precision egas  !< dft gasphase energy
       character*25 xc_spec       ! Names of X functionals
       character*15 bs_tag
       logical  status
+      logical converged
 c     
       double precision cxyz(3)  ! coordinates
       double precision chg      ! charge
@@ -533,6 +535,7 @@ c      integer cosmo_sccor ! do correction?
       integer ieq ! memory offset of x from Ax=b
       integer nodcmp ! flag specifying how to handle errors
       integer need ! the amount of memory needed
+      integer conv_int
 c
       integer l_epot, l_xyzpt, l_zanpt ! memory handles
       integer k_epot, k_xyzpt, k_zanpt ! memory offsets
@@ -1221,6 +1224,12 @@ c
         if(.not.rtdb_get(rtdb,'dft:esol', mt_dbl,1,esol)) 
      &             call errquit(
      &             'hnd_coschg: failed getting esol',0, RTDB_ERR)
+        if(.not.rtdb_get(rtdb,'dft:egas', mt_dbl,1,egas)) 
+     &             call errquit(
+     &             'hnd_coschg: failed getting egas',0, RTDB_ERR)
+        if(.not.rtdb_get(rtdb,'dft:converged', mt_log,1,converged)) 
+     &             call errquit(
+     &             'hnd_coschg: failed getting converged',0, RTDB_ERR)
 
         if(.not.rtdb_cget(rtdb,'dft:xc_spec',1,xc_spec))
      &  call errquit('hnd_coschg: failed getting xc_spec',0, RTDB_ERR)
@@ -1230,10 +1239,19 @@ c
      &  call errquit('hnd_coschg: failed getting basis',0,RTDB_ERR) 
 
         open(unit=fn,form="formatted",file=cosmo_file_nice)
-        
-        write(fn,'(A13,A20,F16.9,A20,A25,A20,A15,A3)', advance="no")
+
+      if (converged) then
+         conv_int = 1  ! True
+      else
+         conv_int = 0  ! False
+      endif
+
+         write(fn,'(A13,A20,F16.9,A25,F16.9,A20,I1,
+     $   A20,A25,A20,A15,A3)', advance="no")
      +  "# {""dftdata"":",
      +  "{""dft_energy"":", esol, 
+     +  ", ""gasphase_energy"":", egas, 
+     +  ", ""converged"":", conv_int, 
      +  ", ""xc_spec"":", """"//trim(xc_spec)//"""", 
      +  ", ""basis"":", """"//trim(bs_tag)//""""," },"
 
